@@ -1,9 +1,13 @@
 package se.metricspace.opendata
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import java.io.File
 import java.util.Locale
+
+@Serializable
+data class AppSettings( val selectedLocations: List<Location> = emptyList(), val currentLocationName: String? = null )
 
 class AppFlow(
     private val deepSpaceNetworkService: DeepSpaceNetworkService,

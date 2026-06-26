@@ -120,21 +120,21 @@ class DeepSpaceNetworkService(private val httpClient: HttpClient) {
     }
 
     fun parseDish(dishNode: Element): DishInformation {
-        var downSignals = emptyList<SignalInformation>()
-        var targets = emptyList<TargetInformation>()
-        var upSignals = emptyList<SignalInformation>()
+        val downSignals = mutableListOf<SignalInformation>()
+        val targets = mutableListOf<TargetInformation>()
+        val upSignals = mutableListOf<SignalInformation>()
         for(i in 0 until dishNode.childNodes.length) {
             if(dishNode.childNodes.item(i).nodeType == Node.ELEMENT_NODE) {
                 val innerNode = dishNode.childNodes.item(i) as Element
                 if(innerNode.nodeName == "downSignal") {
                     val signal = parseSignal(innerNode)
-                    downSignals = downSignals + signal
+                    downSignals.add(signal)
                 } else if(innerNode.nodeName == "target") {
                     val target = parseTarget(innerNode)
-                    targets = targets + target
+                    targets.add(target)
                 } else if(innerNode.nodeName == "upSignal") {
                     val signal = parseSignal(innerNode)
-                    upSignals = upSignals + signal
+                    upSignals.add(signal)
                 } else {
                     println("Unhandled tag name in dish: ${innerNode.nodeName}")
                 }

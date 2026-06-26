@@ -70,36 +70,29 @@ class WeatherService(private val client: HttpClient) {
                 val firstHour = rawJson.jsonObject["timeSeries"]?.jsonArray?.firstOrNull()
 
                 val smhiData = jsonParser.decodeFromString<SmhiResponse>(response.body())
-                val forecasts = mutableListOf<WeatherForecast>()
-
-                for (timeStep in smhiData.timeSeries.take(120)) { // Din take(48)!
-                    val data = timeStep.data
-
-                    val rawCloud = data.cloud_area_fraction.validSmhiValue(8.0)
-                    val cloudCover = rawCloud.toInt()
-
-                    val parsedTime = ZonedDateTime.parse(timeStep.time)
-
-                    val localTime = parsedTime.withZoneSameInstant(ZoneId.systemDefault())
-                    if (localTime.isBefore(ZonedDateTime.now())) {
-                        continue
+                val forecasts = smhiData.timeSeries
+                    .take(120)
+                    .filter { timeStep ->
+                        val localTime = ZonedDateTime.parse(timeStep.time).withZoneSameInstant(ZoneId.systemDefault())
+                        localTime.isAfter(ZonedDateTime.now()) // Släpp bara igenom framtida tider
                     }
+                    .map { timeStep ->
+                        val data = timeStep.data
+                        val localTime = ZonedDateTime.parse(timeStep.time).withZoneSameInstant(ZoneId.systemDefault())
+                        val displayTime = localTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                        val cloudCover = data.cloud_area_fraction.validSmhiValue(8.0).toInt()
 
-                    val displayTime = localTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-                    forecasts.add(
                         WeatherForecast(
                             time = displayTime,
                             cloudCoverOctas = cloudCover,
                             isClearSky = cloudCover == 0,
-
                             temperature = data.air_temperature.validSmhiValue(),
                             windSpeed = data.wind_speed.validSmhiValue(),
                             humidity = data.relative_humidity.validSmhiValue(),
                             visibilityKm = data.visibility_in_air.validSmhiValue(),
                             precipitationMm = data.precipitation_amount_mean.validSmhiValue()
                         )
-                    )
-                }
+                    }
                 return forecasts
             } else {
                 println("SMHI svarade med ett fel: HTTP ${response.statusCode()}")
