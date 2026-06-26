@@ -11,7 +11,6 @@ import java.net.http.HttpResponse
 class GeocodingService(private val client: HttpClient) {
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
-    // En intern dataklass som bara används för att tolka OSM:s JSON
     @Serializable
     private data class OsmResult(val display_name: String, val lat: String, val lon: String)
 
@@ -32,7 +31,6 @@ class GeocodingService(private val client: HttpClient) {
                 val osmLista = jsonParser.decodeFromString<List<OsmResult>>(response.body())
                 val rawResult = osmLista.firstOrNull() ?: return null
 
-                // Mappa om det råa API-svaret till vår snygga app-modell
                 return Location( name = rawResult.display_name, latitude = rawResult.lat.toDouble(), longitude = rawResult.lon.toDouble() )
             }
         } catch (e: Exception) {

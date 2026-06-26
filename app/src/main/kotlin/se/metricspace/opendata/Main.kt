@@ -4,9 +4,12 @@ import java.net.http.HttpClient
 
 fun main() {
     val commonHttpClient = HttpClient.newHttpClient()
-    val geocodingService = GeocodingService(commonHttpClient)
+    val deepSpaceNetworkService = DeepSpaceNetworkService(commonHttpClient)
     val flightService = FlightService(commonHttpClient)
+    val geocodingService = GeocodingService(commonHttpClient)
     val weatherService = WeatherService(commonHttpClient)
-    val appFlow = AppFlow(geocodingService, weatherService, flightService)
+
+    val appFlow = AppFlow(deepSpaceNetworkService, flightService, geocodingService, weatherService)
+
     appFlow.start()
 }
