@@ -14,7 +14,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class WeatherService(private val client: HttpClient) {
+class WeatherService(private val client: HttpClient, private val userAgent: String) {
     private fun Double?.validSmhiValue(fallback: Double = 0.0): Double {
         return if (this == null || this == 9999.0) fallback else this
     }
@@ -60,6 +60,7 @@ class WeatherService(private val client: HttpClient) {
 
             val request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .header("User-Agent", userAgent)
                 .GET()
                 .build()
 

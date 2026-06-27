@@ -34,7 +34,7 @@ class AppFlow(
         // Den stora evighetsloopen (Huvudmenyn)
         while (true) {
             println("\n=======================================")
-            println("📍 AKTIV PLATS: ${selectedLocation.name} Lon "+String.format(Locale.US, "%.2f", selectedLocation.longitude)+" Lat "+String.format(Locale.US, "%.2f", selectedLocation.latitude))
+            println("📍 AKTIV PLATS: ${selectedLocation.displayName} Lon "+String.format(Locale.US, "%.2f", selectedLocation.longitude)+" Lat "+String.format(Locale.US, "%.2f", selectedLocation.latitude))
             println("=======================================")
             println("[1] 🌟 Kolla Väder & Stjärnskådning")
             println("[2] ✈️  Starta Flygradar")
@@ -48,7 +48,6 @@ class AppFlow(
                 "2" -> goRadarFLow(selectedLocation)
                 "3" -> {
                     selectedLocation = showLocationMenu(settings)
-                    // Uppdatera settings med det nya aktiva valet
                     settings = settings.copy(currentLocationName = selectedLocation.name)
                     settingsFile.writeText(json.encodeToString(settings))
                 }
@@ -151,7 +150,7 @@ class AppFlow(
             println("\nVälj en plats att använda:")
             settings.selectedLocations.forEachIndexed { index, plats ->
                 val markering = if (plats.name == settings.currentLocationName) " (aktiv)" else ""
-                println("[${index + 1}] ${plats.name}$markering Lon "+String.format(Locale.US, "%.2f", plats.longitude)+" Lat "+String.format(Locale.US, "%.2f", plats.latitude))
+                println("[${index + 1}] ${plats.displayName}$markering Lon "+String.format(Locale.US, "%.2f", plats.longitude)+" Lat "+String.format(Locale.US, "%.2f", plats.latitude))
             }
             println("[N] Lägg till en ny plats")
             print("Ditt val: ")
@@ -183,9 +182,8 @@ class AppFlow(
 
         println("Söker efter koordinater...")
         val locationFound = geocodingService.findLocation(searchTerm)
-
         if (locationFound != null) {
-            println("Hittade: ${locationFound.name}")
+            println("Hittade: ${locationFound.displayName}")
 
             val newList = appSettings.selectedLocations + locationFound
             val newSettings = appSettings.copy(

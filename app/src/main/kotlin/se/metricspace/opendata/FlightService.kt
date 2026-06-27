@@ -8,7 +8,7 @@ import java.net.http.HttpResponse
 import java.util.Locale
 import kotlin.math.roundToInt
 
-class FlightService(private val client: HttpClient) {
+class FlightService(private val client: HttpClient, private val userAgent: String) {
     private fun Double.toCompassDirection(): String {
         val directions = arrayOf("N", "NO", "O", "SO", "S", "SV", "V", "NV")
         val index = ((this % 360) / 45.0).roundToInt()
@@ -29,15 +29,16 @@ class FlightService(private val client: HttpClient) {
 
     fun getFlightsOver(lat: Double, lon: Double): List<Flight> {
         try {
-            val lamin = String.format(Locale.US, "%.4f", lat - 0.5)
-            val lamax = String.format(Locale.US, "%.4f", lat + 0.5)
-            val lomin = String.format(Locale.US, "%.4f", lon - 1.0)
-            val lomax = String.format(Locale.US, "%.4f", lon + 1.0)
+            val lamin = String.format(Locale.US, "%.4f", lat - 0.51)
+            val lamax = String.format(Locale.US, "%.4f", lat + 0.51)
+            val lomin = String.format(Locale.US, "%.4f", lon - 1.02)
+            val lomax = String.format(Locale.US, "%.4f", lon + 1.02)
 
             val url = "https://opensky-network.org/api/states/all?lamin=$lamin&lomin=$lomin&lamax=$lamax&lomax=$lomax"
 
             val request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .header("User-Agent", userAgent)
                 .GET()
                 .build()
 

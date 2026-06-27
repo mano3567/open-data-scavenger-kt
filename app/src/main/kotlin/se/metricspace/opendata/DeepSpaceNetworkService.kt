@@ -52,7 +52,7 @@ data class StationInformation(
     val timeUTC: Long
 )
 
-class DeepSpaceNetworkService(private val httpClient: HttpClient) {
+class DeepSpaceNetworkService(private val httpClient: HttpClient, private val userAgent: String) {
     private val DSNURL = "https://eyes.nasa.gov/dsn/data/dsn.xml"
 
     private val spacecraftNames = mapOf(
@@ -160,7 +160,7 @@ class DeepSpaceNetworkService(private val httpClient: HttpClient) {
     }
 
     fun getDataFromDsnAtNasa() : List<StationInformation> {
-        val request = HttpRequest.newBuilder().uri(URI.create(DSNURL)).GET().build()
+        val request = HttpRequest.newBuilder().uri(URI.create(DSNURL)).header("User-Agent", userAgent).GET().build()
 
         val response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream())
 

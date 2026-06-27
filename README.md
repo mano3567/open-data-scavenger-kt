@@ -14,7 +14,7 @@ Men när man i stället inser vad datan faktiskt representerar ändras perspekti
 
 > 📺 **Fördjupning:** > Hur Deep Space Network lyckas fånga upp dessa mikroskopiska rymdviskningar förklaras fantastiskt väl i den här videon från *Sixty Symbols*:
 > 
-> https://youtu.be/h9YI6_I_uXQ
+> https://www.youtube.com/watch?v=YBaBlWv5klk
 
 ---
 
