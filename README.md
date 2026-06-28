@@ -28,7 +28,7 @@ This project is built with modern, idiomatic Kotlin and avoids heavy frameworks 
 
 Language: Kotlin
 
-HTTP Client: Native Java 11+ java.net.http.HttpClient
+HTTP Client: Native Java 21+ java.net.http.HttpClient
 
 JSON Parsing: kotlinx.serialization (Type-safe, reflection-free unmarshalling)
 
