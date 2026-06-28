@@ -5,11 +5,21 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlin.math.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @Serializable
 data class KpIndexStatus(
@@ -32,21 +42,43 @@ data class KpIndexStatus(
     val timestamp: Instant
         get() = Instant.parse(timeTagString + "Z")
 }
+
+data class SolarWindMagneticField( val bxGsm: Double, val byGsm: Double, val bzGsm: Double, val latitudeGsm: Double, val longitudeGsm: Double, val timeTag: Instant, val totalFieldBt: Double )
+
+data class SolarWindPlasma(val density: Double, val speed: Double, val temperature: Double, val timeTag: Instant)
+
 /**
  * Level 2: Detailed, real-time space weather telemetry from the L1 point.
  */
-data class SolarWindTelemetry(
-    val bz: Double,            // IMF Z-component in nanoTesla (nT)
-    val bt: Double,            // Total magnetic field strength (nT)
-    val speedKms: Double,      // Solar wind velocity in km/s
-    val density: Double,       // Proton density in p/cm³
-    val timestamp: Instant
+data class CombinedSolarWind(
+    val timeTag: Instant, // Tiden avrundad till minut
+    val plasma: SolarWindPlasma?,
+    val mag: SolarWindMagneticField?
 )
 
 private const val POLE_LAT = 80.5 * PI / 180.0
 private const val POLE_LON = -72.5 * PI / 180.0
 
+fun mergeSolarWindData( plasmaList: List<SolarWindPlasma>, magList: List<SolarWindMagneticField> ): List<CombinedSolarWind> {
 
+    // 1. Skapa Maps där nyckeln är tidsstämpeln avrundad till jämn minut
+    val plasmaByMinute = plasmaList.associateBy {
+        it.timeTag.truncatedTo(ChronoUnit.MINUTES)
+    }
+    val magByMinute = magList.associateBy {
+        it.timeTag.truncatedTo(ChronoUnit.MINUTES)
+    }
+
+    val allUniqueMinutes = (plasmaByMinute.keys + magByMinute.keys).sorted()
+
+    return allUniqueMinutes.map { minute ->
+        CombinedSolarWind(
+            timeTag = minute,
+            plasma = plasmaByMinute[minute], // Kan bli null om plasma saknas denna minut
+            mag = magByMinute[minute]        // Kan bli null om mag saknas denna minut
+        )
+    }
+}
 fun Location.getGeomagneticLatitude(): Double {
     val latRad = this.latitude * PI / 180.0
     val lonRad = this.longitude * PI / 180.0
@@ -73,12 +105,82 @@ fun Location.getRequiredKp(): Int {
 }
 
 class SpaceWeatherService(private val client: HttpClient, private val userAgent: String) {
-    private val noaaScalesUrl = "https://services.swpc.noaa.gov/products/noaa-scales.json"
-    private val magUrl = "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json"
+//    private val noaaScalesUrl = "https://services.swpc.noaa.gov/products/noaa-scales.json"
+    private val magneticFieldUrl = "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json"
     private val plasmaUrl = "https://services.swpc.noaa.gov/products/solar-wind/plasma-2-hour.json"
     private val kpUrl = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
-
+    private val noaaFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     private val jsonParser = Json { ignoreUnknownKeys = true }
+
+    fun parseNoaaDateTime(timeStr: String): Instant {
+        val localDateTime = LocalDateTime.parse(timeStr, noaaFormatter)
+        return localDateTime.toInstant(ZoneOffset.UTC)
+    }
+
+    fun fetchSolarWindMagneticField(): List<SolarWindMagneticField> {
+        try {
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create(magneticFieldUrl))
+                .header("User-Agent", userAgent)
+                .GET()
+                .build()
+
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() == 200) {
+                val jsonString = response.body()
+                val rawMatrix = Json.decodeFromString<List<List<String>>>(jsonString)
+                val magneticData = rawMatrix.drop(1).map { row ->
+                    SolarWindMagneticField(
+                        timeTag = parseNoaaDateTime(row[0]),
+                        bxGsm = row[1].toDoubleOrNull()?: 0.0,
+                        byGsm = row[2].toDoubleOrNull()?: 0.0,
+                        bzGsm = row[3].toDoubleOrNull()?: 0.0,
+                        longitudeGsm = row[4].toDoubleOrNull()?: 0.0,
+                        latitudeGsm = row[5].toDoubleOrNull()?: 0.0,
+                        totalFieldBt = row[6].toDoubleOrNull()?: 0.0
+                    )
+                }
+                return magneticData.takeLast(30)
+            } else {
+                println("NOAA responded with an error: HTTP ${response.statusCode()}")
+            }
+        } catch (e: Exception) {
+            println("Failed to fetch Kp trend: ${e.message}")
+        }
+        return emptyList()
+    }
+
+    fun fetchSolarWindPlasmas(): List<SolarWindPlasma> {
+        try {
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create(plasmaUrl))
+                .header("User-Agent", userAgent)
+                .GET()
+                .build()
+
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() == 200) {
+                val jsonString = response.body()
+                val rawMatrix = Json.decodeFromString<List<List<String>>>(jsonString)
+                val plasmaData = rawMatrix.drop(1).map { row ->
+                    SolarWindPlasma(
+                        timeTag = parseNoaaDateTime(row[0]), // Här sker konverteringen
+                        density = row[1].toDoubleOrNull()?:0.0,
+                        speed = row[2].toDoubleOrNull()?:0.0,
+                        temperature = row[3].toDoubleOrNull()?:0.0
+                    )
+                }
+                return plasmaData.takeLast(30)
+            } else {
+                println("NOAA responded with an error: HTTP ${response.statusCode()}")
+            }
+        } catch (e: Exception) {
+            println("Failed to fetch Kp trend: ${e.message}")
+        }
+        return emptyList()
+    }
 
     fun fetchLatestKpIndex(): List<KpIndexStatus> {
         try {
@@ -101,25 +203,17 @@ class SpaceWeatherService(private val client: HttpClient, private val userAgent:
         }
         return emptyList()
     }
-        /**
-     * Level 2: Fetches detailed solar wind magnetic and plasma telemetry from L1.
-     * Ideal for precise calculations, time-delay forecasting, and aurora hunting.
-     */
-    fun fetchDetailedTelemetry(): SolarWindTelemetry? {
+
+    fun fetchDetailedTelemetry(): List<CombinedSolarWind> {
         try {
-            // TODO: Execute parallel or sequential HTTP requests to magUrl and plasmaUrl
-            // TODO: Extract the last row of data from both JSON matrices
-            // TODO: Correlate them by timestamp and return the combined telemetry
-            return SolarWindTelemetry(
-                bz = -5.4,
-                bt = 6.2,
-                speedKms = 480.0,
-                density = 8.5,
-                timestamp = Instant.now()
-            )
+            val plasmaData = fetchSolarWindPlasmas()
+            val magData = fetchSolarWindMagneticField()
+
+            return mergeSolarWindData(plasmaData, magData)
         } catch (e: Exception) {
             println("Failed to fetch detailed solar wind telemetry: ${e.message}")
-            return null
+            return emptyList<CombinedSolarWind>()
         }
+        return emptyList<CombinedSolarWind>()
     }
 }

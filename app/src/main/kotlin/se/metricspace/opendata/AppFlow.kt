@@ -110,8 +110,6 @@ class AppFlow(
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         val localZone = ZoneId.systemDefault()
 
-        // 3. Projicera din Instant till tidszonen och formatera
-//        return instant.atZone(localZone).format(formatter)
         val kpIndexStatuses = spaceWeatherService.fetchLatestKpIndex()
         for(kpIndexStatus in kpIndexStatuses) {
             String.format(Locale.US, "%.0f", kpIndexStatus.kpIndex)
@@ -121,6 +119,10 @@ class AppFlow(
 
     private fun goGetSpaceWeatherFlow(location: Location) {
         println("\nSöker SpaceWeather över ${location.displayName}...")
+        val combinedSolarWindList = spaceWeatherService.fetchDetailedTelemetry()
+        for(combinedSolarWind in combinedSolarWindList) {
+            println(combinedSolarWind)
+        }
     }
 
     private fun goFlightRadarFLow(location: Location) {
