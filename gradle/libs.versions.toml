@@ -2,12 +2,19 @@
 # https://docs.gradle.org/current/userguide/version_catalogs.html#sec::toml-dependencies-format
 
 [versions]
+kotlin = "2.3.21"
 guava = "33.5.0-jre"
 junit-jupiter-engine = "6.0.1"
+kotlinx-serialization = "1.11.0"
+app = "0.1-SNAPSHOT"
 
 [libraries]
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter-engine" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version = "2.3.21" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version = "2.3.21" }
+shadow = { id = "com.gradleup.shadow", version = "9.4.3" }
+graalvm = { id = "org.graalvm.buildtools.native", version = "1.1.3" }

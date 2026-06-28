@@ -8,9 +8,10 @@ fun main() {
     val deepSpaceNetworkService = DeepSpaceNetworkService(commonHttpClient, userAgent)
     val flightService = FlightService(commonHttpClient, userAgent)
     val geocodingService = GeocodingService(commonHttpClient, userAgent)
+    val spaceWeatherService = SpaceWeatherService(commonHttpClient, userAgent)
     val weatherService = WeatherService(commonHttpClient, userAgent)
 
-    val appFlow = AppFlow(deepSpaceNetworkService, flightService, geocodingService, weatherService)
+    val appFlow = AppFlow(deepSpaceNetworkService, flightService, geocodingService, spaceWeatherService, weatherService)
 
     appFlow.start()
 }

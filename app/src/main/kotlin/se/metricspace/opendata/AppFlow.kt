@@ -13,6 +13,7 @@ class AppFlow(
     private val deepSpaceNetworkService: DeepSpaceNetworkService,
     private val flightService: FlightService,
     private val geocodingService: GeocodingService,
+    private val spaceWeatherService: SpaceWeatherService,
     private val weatherService: WeatherService ) {
     private val settingsFile = File("settings.json")
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
@@ -40,20 +41,24 @@ class AppFlow(
             println("[2] ✈️  Starta Flygradar")
             println("[3] 🌍 Byt Plats")
             println("[4] 💤 Snapshot för kommunikation från Deep Space Network")
-            println("[5] 💤 Avsluta programmet")
+            println("[5] 💤 Kp-Index")
+            println("[6] 💤 Något mer detaljerat om rymdväder")
+            println("[Q] 💤 Avsluta programmet")
             print("Ditt val: ")
 
             when (readlnOrNull()?.trim()) {
                 "1" -> goWeatherFlow(selectedLocation)
-                "2" -> goRadarFLow(selectedLocation)
+                "2" -> goFlightRadarFLow(selectedLocation)
                 "3" -> {
                     selectedLocation = showLocationMenu(settings)
                     settings = settings.copy(currentLocationName = selectedLocation.name)
                     settingsFile.writeText(json.encodeToString(settings))
                 }
                 "4" -> goDeepSpaceNetworkFlow()
-                "5" -> {
-                    println("Avslutar processer och stänger ner. Snyggt kodat ikväll! God natt!")
+                "5" -> goGetKpIndexFlow(selectedLocation)
+                "6" -> goGetSpaceWeatherFlow(selectedLocation)
+                "Q", "q" -> {
+                    println("Avslutar processer och stänger ner.")
                     break // Bryter while-loopen och stänger programmet
                 }
                 else -> println("Ogiltigt val, försök igen.")
@@ -98,9 +103,19 @@ class AppFlow(
         }
     }
 
-    private fun goRadarFLow(plats: Location) {
-        println("\nSöker på radarn över ${plats.name}...")
-        val flights = flightService.getFlightsOver(plats.latitude, plats.longitude)
+    private fun goGetKpIndexFlow(location: Location) {
+        println("\nSöker KpIndex över ${location.displayName}...")
+        println("Minsta kp-värde som är relevant på platsen: ${location.getRequiredKp()}")
+        val kpIndexStatus = spaceWeatherService.fetchCurrentKpIndex()
+    }
+
+    private fun goGetSpaceWeatherFlow(location: Location) {
+        println("\nSöker SpaceWeather över ${location.displayName}...")
+    }
+
+    private fun goFlightRadarFLow(location: Location) {
+        println("\nSöker på radarn över ${location.displayName}...")
+        val flights = flightService.getFlightsOver(location.latitude, location.longitude)
 
         if (flights.isEmpty()) {
             println("Luftrummet är helt tomt just nu.")
