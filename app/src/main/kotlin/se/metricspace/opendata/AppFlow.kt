@@ -2,8 +2,9 @@ package se.metricspace.opendata
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
 import java.io.File
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Serializable
@@ -106,7 +107,16 @@ class AppFlow(
     private fun goGetKpIndexFlow(location: Location) {
         println("\nSöker KpIndex över ${location.displayName}...")
         println("Minsta kp-värde som är relevant på platsen: ${location.getRequiredKp()}")
-        val kpIndexStatus = spaceWeatherService.fetchCurrentKpIndex()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val localZone = ZoneId.systemDefault()
+
+        // 3. Projicera din Instant till tidszonen och formatera
+//        return instant.atZone(localZone).format(formatter)
+        val kpIndexStatuses = spaceWeatherService.fetchLatestKpIndex()
+        for(kpIndexStatus in kpIndexStatuses) {
+            String.format(Locale.US, "%.0f", kpIndexStatus.kpIndex)
+            println ("${kpIndexStatus.timestamp.atZone(localZone).format(formatter)} | Kp-Index: ${"%.2f".format(Locale.US, kpIndexStatus.kpIndex)} | Running \$a\$-index: ${kpIndexStatus.runningAmplitude} | Stationer: ${kpIndexStatus.stationCount}")
+        }
     }
 
     private fun goGetSpaceWeatherFlow(location: Location) {

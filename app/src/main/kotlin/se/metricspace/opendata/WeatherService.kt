@@ -68,7 +68,6 @@ class WeatherService(private val client: HttpClient, private val userAgent: Stri
 
             if (response.statusCode() == 200) {
                 val rawJson = Json.parseToJsonElement(response.body())
-                val firstHour = rawJson.jsonObject["timeSeries"]?.jsonArray?.firstOrNull()
 
                 val smhiData = jsonParser.decodeFromString<SmhiResponse>(response.body())
                 val forecasts = smhiData.timeSeries
