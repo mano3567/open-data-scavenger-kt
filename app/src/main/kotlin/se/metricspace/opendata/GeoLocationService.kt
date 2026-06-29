@@ -11,7 +11,7 @@ import java.net.http.HttpResponse
 @Serializable
 data class Location(val addressType: String, val boundingBox: List<String>, val displayName: String, val importance: Double, val latitude: Double, val licence: String, val longitude: Double, val name: String, val osmId: Long, val osmType: String, val placeId: Long, val placeRank: Int, val type: String)
 
-class GeocodingService(private val client: HttpClient, private val userAgent: String) {
+class GeoLocationService(private val client: HttpClient, private val userAgent: String) {
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
     @Serializable

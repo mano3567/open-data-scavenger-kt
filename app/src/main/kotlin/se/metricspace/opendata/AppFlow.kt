@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -13,7 +14,7 @@ data class AppSettings( val selectedLocations: List<Location> = emptyList(), val
 class AppFlow(
     private val deepSpaceNetworkService: DeepSpaceNetworkService,
     private val flightService: FlightService,
-    private val geocodingService: GeocodingService,
+    private val geoLocationService: GeoLocationService,
     private val spaceWeatherService: SpaceWeatherService,
     private val weatherService: WeatherService ) {
     private val settingsFile = File("settings.json")
@@ -119,9 +120,11 @@ class AppFlow(
 
     private fun goGetSpaceWeatherFlow(location: Location) {
         println("\nSöker SpaceWeather över ${location.displayName}...")
-        val combinedSolarWindList = spaceWeatherService.fetchDetailedTelemetry()
+        val combinedSolarWindList = spaceWeatherService.fetchDetailedTelemetry().takeLast(10)
         for(combinedSolarWind in combinedSolarWindList) {
-            println(combinedSolarWind)
+            val someTime = combinedSolarWind.timeTag.atZone(ZoneId.systemDefault())
+            val displayTime = someTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            println(displayTime+" | Bz: ${combinedSolarWind.mag?.bzGsm} | Density: ${combinedSolarWind.plasma?.density} | Speed: ${combinedSolarWind.plasma?.speed} | Temperature: ${combinedSolarWind.plasma?.temperature}")
         }
     }
 
@@ -208,7 +211,7 @@ class AppFlow(
         val searchTerm = readln().trim()
 
         println("Söker efter koordinater...")
-        val locationFound = geocodingService.findLocation(searchTerm)
+        val locationFound = geoLocationService.findLocation(searchTerm)
         if (locationFound != null) {
             println("Hittade: ${locationFound.displayName}")
 

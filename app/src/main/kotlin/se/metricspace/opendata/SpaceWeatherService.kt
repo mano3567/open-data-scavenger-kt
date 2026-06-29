@@ -43,15 +43,12 @@ data class KpIndexStatus(
         get() = Instant.parse(timeTagString + "Z")
 }
 
-data class SolarWindMagneticField( val bxGsm: Double, val byGsm: Double, val bzGsm: Double, val latitudeGsm: Double, val longitudeGsm: Double, val timeTag: Instant, val totalFieldBt: Double )
+data class SolarWindMagneticField( val bxGsm: Double?, val byGsm: Double?, val bzGsm: Double?, val latitudeGsm: Double?, val longitudeGsm: Double?, val timeTag: Instant, val totalFieldBt: Double? )
 
-data class SolarWindPlasma(val density: Double, val speed: Double, val temperature: Double, val timeTag: Instant)
+data class SolarWindPlasma(val density: Double?, val speed: Double?, val temperature: Double?, val timeTag: Instant)
 
-/**
- * Level 2: Detailed, real-time space weather telemetry from the L1 point.
- */
 data class CombinedSolarWind(
-    val timeTag: Instant, // Tiden avrundad till minut
+    val timeTag: Instant,
     val plasma: SolarWindPlasma?,
     val mag: SolarWindMagneticField?
 )
@@ -133,12 +130,12 @@ class SpaceWeatherService(private val client: HttpClient, private val userAgent:
                 val magneticData = rawMatrix.drop(1).map { row ->
                     SolarWindMagneticField(
                         timeTag = parseNoaaDateTime(row[0]),
-                        bxGsm = row[1].toDoubleOrNull()?: 0.0,
-                        byGsm = row[2].toDoubleOrNull()?: 0.0,
-                        bzGsm = row[3].toDoubleOrNull()?: 0.0,
-                        longitudeGsm = row[4].toDoubleOrNull()?: 0.0,
-                        latitudeGsm = row[5].toDoubleOrNull()?: 0.0,
-                        totalFieldBt = row[6].toDoubleOrNull()?: 0.0
+                        bxGsm = row[1].toDoubleOrNull(),
+                        byGsm = row[2].toDoubleOrNull(),
+                        bzGsm = row[3].toDoubleOrNull(),
+                        longitudeGsm = row[4].toDoubleOrNull(),
+                        latitudeGsm = row[5].toDoubleOrNull(),
+                        totalFieldBt = row[6].toDoubleOrNull()
                     )
                 }
                 return magneticData.takeLast(30)
@@ -167,9 +164,9 @@ class SpaceWeatherService(private val client: HttpClient, private val userAgent:
                 val plasmaData = rawMatrix.drop(1).map { row ->
                     SolarWindPlasma(
                         timeTag = parseNoaaDateTime(row[0]), // Här sker konverteringen
-                        density = row[1].toDoubleOrNull()?:0.0,
-                        speed = row[2].toDoubleOrNull()?:0.0,
-                        temperature = row[3].toDoubleOrNull()?:0.0
+                        density = row[1].toDoubleOrNull(),
+                        speed = row[2].toDoubleOrNull(),
+                        temperature = row[3].toDoubleOrNull()
                     )
                 }
                 return plasmaData.takeLast(30)
@@ -214,6 +211,5 @@ class SpaceWeatherService(private val client: HttpClient, private val userAgent:
             println("Failed to fetch detailed solar wind telemetry: ${e.message}")
             return emptyList<CombinedSolarWind>()
         }
-        return emptyList<CombinedSolarWind>()
     }
 }
